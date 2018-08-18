@@ -1,8 +1,7 @@
 ---------------------------------------------------------------------------------------------
 --File:             decoder_display_with_select.vhd
---Developer(s):     Henrique Krausburg Corrêa
---E-Mail:           henrique.krausburg.correa@gmail.com
---Project:          Laboratory 1: 7 segment display decoder using with / select structure
+--Developer:        Henrique Krausburg Corrêa <henrique.krausburg.correa@gmail.com>
+--Description:      Laboratory 1: 7 segment display decoder using with / select structure
 ---------------------------------------------------------------------------------------------
 
 LIBRARY ieee;
