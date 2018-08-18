@@ -10,8 +10,8 @@ LIBRARY ieee;
 ENTITY decoder IS
 PORT
 (
-    abcd        : IN    std_logic;
-    display     : OUT   std_logic
+    abcd        : IN    std_logic_vector(3 downto 0);
+    display     : OUT   std_logic_vector(6 downto 0)
 );
 END decoder;
 
