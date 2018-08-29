@@ -35,6 +35,7 @@ begin
 	--Clock generation
 	--Works untill test is not finished
 	s_clk <= not s_clk after HALF_PERIOD when s_finishTest /= '1' else '0';
+	s_clk_in <= s_clk;
 
 	--finish condition: TBD
 	s_finishTest <= '0'; 
@@ -49,8 +50,7 @@ begin
 	
 	test: process
 	begin
-	  -- check_initial_values(s_clk, s_rd_en_in, s_rd_address_in, s_rd_data_out);		
-	  check_initial_values(s_clk);		
+	  check_initial_values(s_clk_in, s_rd_en_in, s_rd_address_in, s_rd_data_out);			
 	  wait;
 	end process;
 
