@@ -14,14 +14,20 @@ vcom ./tb_reg_bank.vhd
 vsim -novopt -wlf /tmp/lab01 -wlfdeleteonquit work.tb_reg_bank
 
 ##set waveforms and additional display options
+add wave -position insertpoint  \
+-radix hex sim:/tb_reg_bank/s_clk \
+-radix hex sim:/tb_reg_bank/s_finishTest \
+-radix hex sim:/tb_reg_bank/s_rd_en_in \
+-radix hex sim:/tb_reg_bank/s_rst_in \
+-radix hex sim:/tb_reg_bank/s_wr_en_in \
+-radix hex sim:/tb_reg_bank/s_rd_data_out \
+-radix hex sim:/tb_reg_bank/s_wr_data_in \
+-radix hex sim:/tb_reg_bank/s_rd_address_in \
+-radix hex sim:/tb_reg_bank/s_wr_address_in
 #add wave -position end -radix hex sim:/decoder_scancode_ascii_tb/s_scancode_in
 #add wave -position end -radix ascii sim:/decoder_scancode_ascii_tb/s_golden_ascii_out
 #add wave -position end -radix ascii sim:/decoder_scancode_ascii_tb/s_cuv_ascii_out
 
-## force input signals
-#force -freeze sim:/full_adder/ci 1 0, 0 {20 ns} -r 40 ns
-#force -freeze sim:/full_adder/b 1 0, 0 {40 ns} -r 80 ns
-#force -freeze sim:/full_adder/a 1 0, 0 {80 ns} -r 160 ns
-
 ##run simulation
-run 1000 ns
+run 2550 ns
+

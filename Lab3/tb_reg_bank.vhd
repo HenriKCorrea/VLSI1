@@ -1,6 +1,6 @@
 --------------------------------------------------
 -- File:    tb_reg_bank.vhd
--- Author:  Henrique Krausburg CorrÃªa
+-- Author:  Henrique Krausburg Corrêa
 --------------------------------------------------
 
 library ieee;
@@ -36,21 +36,15 @@ begin
 	--Works untill test is not finished
 	s_clk <= not s_clk after HALF_PERIOD when s_finishTest /= '1' else '0';
 	s_clk_in <= s_clk;
-
-	--finish condition: TBD
-	s_finishTest <= '0'; 
-
-    --Process used to generate input values for golden and cuv blocks
-	-- input_gen: process (s_clk)
-	-- begin
-		-- if(s_clk'event and s_clk = '1') then
-			
-		-- end if;
-	-- end process;
 	
+	--Call procedures to validate CUV
 	test: process
 	begin
-	  check_initial_values(s_clk_in, s_rd_en_in, s_rd_address_in, s_rd_data_out);			
+	  test_initial_values(s_clk_in, s_rd_en_in, s_rd_address_in, s_rd_data_out);	
+	  test_write(s_clk_in, s_rst_in, s_rd_en_in, s_wr_en_in, s_rd_address_in, s_wr_address_in, s_rd_data_out, s_wr_data_in);
+	  test_reset_memory(s_clk_in, s_rst_in, s_rd_en_in, s_rd_address_in, s_rd_data_out);	
+	  wait until s_clk = '0';
+	  s_finishTest <= '1';	--Test finished
 	  wait;
 	end process;
 
