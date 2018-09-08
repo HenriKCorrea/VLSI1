@@ -170,6 +170,7 @@ begin
 		end case;
 	end process fsm_next_state_decoder;
 	
+	--sync_out behavior
 	sync_out <= '1' when ((state = READ_ALIGNMENT) or (state = READ_PAYLOAD)) else
 				'0';
 			
@@ -178,29 +179,21 @@ begin
 	data_en_out <= s_data_en_out;
 	
 	write_serial_out: process(clk_in)
-	variable v_delay: std_logic := '0';
 	begin
 		if clk_in'event and clk_in = CLK_EDGE then
 			if rst_in = '1' then
 				--clear output and control signals / variables
 				buffer_out <= (others => '0');
-				v_delay := '0';
 				s_data_en_out <= '0';
 			else
 				--Check if received a new data during read state
 				if(state = READ_PAYLOAD and s_data_sr_received = '1') then
-					--Force a delay to set the output on the next clock cycle
-					v_delay := '1';
-					s_data_en_out <= '0';					
-				elsif(v_delay = '1') then
 					--Set output from internal data buffer
-					v_delay := '0';
 					s_data_en_out <= '1';
 					buffer_out <= buffer_eval;
 				else
 					--Not receiving payload
-					v_delay := '0';
-					s_data_en_out <= '0';					
+					s_data_en_out <= '0';
 				end if;
 			end if;
 		end if;
