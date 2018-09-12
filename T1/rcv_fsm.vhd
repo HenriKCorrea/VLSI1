@@ -36,12 +36,52 @@ architecture arch_rcv_fsm of rcv_fsm is
 	
 	--Flag used to indicate when received 8 serial bits.
 	signal s_data_sr_received : std_logic := '0';
+
+	--Flag used to indicate when the alignment has been validated with success
+	signal s_valid_alignment : std_logic := '0';	
+	
+	--Flag used to indicate when an error occured during alignment validation
+	signal s_invalid_alignment : std_logic := '0';	
 	
 	--Signal of new data available at paralel output
 	signal s_data_en_out : std_logic := '0';
+begin
 
 	
-begin
+	validate_alignment_process: process(clk_in)
+	variable v_count : integer range 0 to 7 := 7;
+	begin
+		if clk_in'event and clk_in = CLK_EDGE then
+			if rst_in = '1' then
+				v_count := 7;
+				s_invalid_alignment <= '0';
+				s_valid_alignment <= '0';
+			--Check if the actual state is to validate alignment
+			elsif((next_state = VALIDATE_ALIGNMENT) or (next_state = READ_ALIGNMENT)) then
+				--Check if alignment is valid
+				if(C_ALIGNMENT_REF(v_count) /= data_sr_in) then
+					--Validation failure
+					s_invalid_alignment <= '1';
+					s_valid_alignment <= '0';
+					v_count := 7;
+				elsif v_count = 0 then
+					--Validation success
+					v_count := 7;
+					s_valid_alignment <= '1';
+					s_invalid_alignment <= '0';
+				else
+					--Wait for the next bit
+					v_count := v_count - 1;
+					s_invalid_alignment <= '0';
+					s_valid_alignment <= '0';
+				end if;			
+			else
+				--Not alignment state: skip
+				s_invalid_alignment <= '0';
+				s_valid_alignment <= '0';			
+			end if;
+		end if;
+	end process validate_alignment_process;	
 
 
 	read_serial_in: process(clk_in)
@@ -52,7 +92,7 @@ begin
 				buffer_in <= (others => '0');
 				v_count := 0;
 				s_data_sr_received <= '0';
-			else
+			elsif((next_state = WAIT_PAYLOAD) or (next_state = READ_PAYLOAD)) then
 				--Shift data and insert new received data
 				buffer_in <=  buffer_in(6 downto 0) & data_sr_in;
 				
@@ -65,6 +105,10 @@ begin
 					v_count := v_count + 1;
 					s_data_sr_received <= '0';
 				end if;
+			else
+				--Not a payload: Skip
+				v_count := 0;
+				s_data_sr_received <= '0';
 			end if;
 		end if;
 	end process read_serial_in;	
@@ -82,7 +126,7 @@ begin
 		end if;
 	end process fsm_transition;
 
-	fsm_next_state_decoder: process(state, s_data_sr_received)
+	fsm_next_state_decoder: process(state, s_data_sr_received, s_valid_alignment, s_invalid_alignment)
 	--Count the number of received payload bytes after an alignment validation
 	variable payload_counter : integer range 0 to 4 := 0;	
 	--Count the number of received valid alignments before enable output
@@ -91,26 +135,23 @@ begin
 		case state is
 			---------------------------------------------------------
 			when VALIDATE_ALIGNMENT =>
-				--only proceed if input serial flag is ON (input buffer is full)
-				if(s_data_sr_received = '1') then
-					--Check if alignment is valid
-					if(buffer_in = C_ALIGNMENT_REF) then
-						--If received three valid alignments, enable output
-						if(alignemt_counter = 2) then
-							alignemt_counter := 0;
-							next_state <= READ_PAYLOAD;
-						else
-							--Increment counter and wait for the next alignment word
-							alignemt_counter := alignemt_counter + 1;
-							next_state <= WAIT_PAYLOAD;
-						end if;
-					else
-						--Invalid alignment: reset state and counter
+				--Check if alignment is valid
+				if(s_valid_alignment = '1') then
+					--If received three valid alignments, enable output
+					if(alignemt_counter = 2) then
 						alignemt_counter := 0;
-						next_state <= VALIDATE_ALIGNMENT;
+						next_state <= READ_PAYLOAD;
+					else
+						--Increment counter and wait for the next alignment word
+						alignemt_counter := alignemt_counter + 1;
+						next_state <= WAIT_PAYLOAD;
 					end if;
+				elsif(s_invalid_alignment = '1') then
+					--Invalid alignment: reset state and counter
+					alignemt_counter := 0;
+					next_state <= VALIDATE_ALIGNMENT;
 				else
-					--did not completed input buffer. Wait to fill it
+					--did not completed validation.
 					next_state <= VALIDATE_ALIGNMENT;
 				end if;
 			----------------------------------------------------------
@@ -149,19 +190,16 @@ begin
 				end if;				
 			----------------------------------------------------------
 			when READ_ALIGNMENT =>
-				--only proceed if input serial flag is ON (input buffer is full)
-				if(s_data_sr_received = '1') then
-					--Check if alignment is valid and read payload
-					if(buffer_in = C_ALIGNMENT_REF) then
-						next_state <= READ_PAYLOAD;
-					else
-						--Invalid alignment: reset state and counter
-						next_state <= VALIDATE_ALIGNMENT;
-					end if;
+				--Check if alignment is valid
+				if(s_valid_alignment = '1') then
+					next_state <= READ_PAYLOAD;
+				elsif(s_invalid_alignment = '1') then
+					--Invalid alignment: reset state
+					next_state <= VALIDATE_ALIGNMENT;
 				else
-					--did not completed input buffer. Wait to fill it
+					--did not completed validation.
 					next_state <= READ_ALIGNMENT;
-				end if;
+				end if;			
 			----------------------------------------------------------
 			when others => --RESET
 				alignemt_counter := 0;
@@ -171,7 +209,7 @@ begin
 	end process fsm_next_state_decoder;
 	
 	--sync_out behavior
-	sync_out <= '1' when ((state = READ_ALIGNMENT) or (state = READ_PAYLOAD)) else
+	sync_out <= '1' when ((next_state = READ_ALIGNMENT) or (next_state = READ_PAYLOAD)) else
 				'0';
 			
 	--Bind output ports to signals
