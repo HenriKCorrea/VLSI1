@@ -28,7 +28,9 @@ architecture tb_rcv_fsm of tb_rcv_fsm is
 	--signals used to map  (CUV)
 	signal s_clk_in, s_data_sr_in, s_data_en_out, s_sync_out : STD_LOGIC := '0'; 
 	signal s_rst_in: std_logic := '1';
-    signal s_data_pl_out :  STD_LOGIC_VECTOR ( 7 downto 0 ) := (others => '0'); 
+    signal s_data_pl_out :  STD_LOGIC_VECTOR ( 7 downto 0 ) := (others => '0');
+	signal s_serial_queue: STD_LOGIC_VECTOR (47 downto 0) := (others => '0');
+	signal s_previous_sync_out: std_logic := '0';
 
 begin
 
@@ -36,6 +38,10 @@ begin
 	--Works untill test is not finished
 	s_clk <= not s_clk after HALF_PERIOD when s_finishTest /= '1' else '0';
 	s_clk_in <= s_clk;
+	
+	--Queue insertion
+	s_serial_queue <= s_serial_queue (46 downto 0) & s_data_sr_in when (s_clk'event and s_clk = '1');
+	s_previous_sync_out <= s_sync_out when (s_clk'event and s_clk = '1');
 	
 
 	--Control reset to sync the serial data to be sent with the clock period
@@ -55,6 +61,15 @@ begin
 			aux_generate_dummy_payload(s_clk, s_data_sr_in);
 		end loop;
 	end process test;
+	
+	--Procedure to validate 
+	-- 1) comparar com o previous sync
+	-- 2) se for borda de subida: ultimas 3 palavras de alinhamento devem ser validas
+	-- 3) se for borda de descida: observar falha no alinhamento // erro logo atras
+	sync_validation: process(s_sync_out)
+	begin
+		
+	end process sync_validation;
 
 
 	--Instantiate CUV
