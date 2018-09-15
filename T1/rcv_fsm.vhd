@@ -45,6 +45,12 @@ architecture arch_rcv_fsm of rcv_fsm is
 	
 	--Signal of new data available at paralel output
 	signal s_data_en_out : std_logic := '0';
+	
+	--Count the number of received valid alignments before enable output
+	signal s_alignemt_counter : integer range 0 to 3 := 0;	
+	
+	--Count the number of received payload bytes after an alignment validation
+	signal s_payload_counter : integer range 0 to 5 := 0;		
 begin
 
 	
@@ -56,6 +62,7 @@ begin
 				v_count := 7;
 				s_invalid_alignment <= '0';
 				s_valid_alignment <= '0';
+				s_alignemt_counter <= 0;
 			--Check if the actual state is to validate alignment
 			elsif((next_state = VALIDATE_ALIGNMENT) or (next_state = READ_ALIGNMENT)) then
 				--Check if alignment is valid
@@ -64,11 +71,17 @@ begin
 					s_invalid_alignment <= '1';
 					s_valid_alignment <= '0';
 					v_count := 7;
+					s_alignemt_counter <= 0;
 				elsif v_count = 0 then
 					--Validation success
 					v_count := 7;
 					s_valid_alignment <= '1';
 					s_invalid_alignment <= '0';
+					
+					--If device is still on VALIDATE_ALIGNMENT state, increment counter of successful alignment validation (consecutive)
+					if(next_state = VALIDATE_ALIGNMENT) then
+						s_alignemt_counter <= s_alignemt_counter + 1;
+					end if;
 				else
 					--Wait for the next bit
 					v_count := v_count - 1;
@@ -92,6 +105,7 @@ begin
 				buffer_in <= (others => '0');
 				v_count := 0;
 				s_data_sr_received <= '0';
+				s_payload_counter <= 0;
 			elsif((next_state = WAIT_PAYLOAD) or (next_state = READ_PAYLOAD)) then
 				--Shift data and insert new received data
 				buffer_in <=  buffer_in(6 downto 0) & data_sr_in;
@@ -100,6 +114,7 @@ begin
 					--move received data to internal buffer
 					v_count := 0;
 					s_data_sr_received <= '1';
+					s_payload_counter <= s_payload_counter + 1;
 				else
 					--Increment counter and go back get the next serial bit
 					v_count := v_count + 1;
@@ -109,6 +124,7 @@ begin
 				--Not a payload: Skip
 				v_count := 0;
 				s_data_sr_received <= '0';
+				s_payload_counter <= 0;
 			end if;
 		end if;
 	end process read_serial_in;	
@@ -127,67 +143,38 @@ begin
 	end process fsm_transition;
 
 	fsm_next_state_decoder: process(state, s_data_sr_received, s_valid_alignment, s_invalid_alignment)
-	--Count the number of received payload bytes after an alignment validation
-	variable payload_counter : integer range 0 to 4 := 0;	
-	--Count the number of received valid alignments before enable output
-	variable alignemt_counter : integer range 0 to 2 := 0;
 	begin
 		case state is
 			---------------------------------------------------------
 			when VALIDATE_ALIGNMENT =>
-				--Check if alignment is valid
-				if(s_valid_alignment = '1') then
-					--If received three valid alignments, enable output
-					if(alignemt_counter = 2) then
-						alignemt_counter := 0;
-						next_state <= READ_PAYLOAD;
-					else
-						--Increment counter and wait for the next alignment word
-						alignemt_counter := alignemt_counter + 1;
-						next_state <= WAIT_PAYLOAD;
-					end if;
-				elsif(s_invalid_alignment = '1') then
-					--Invalid alignment: reset state and counter
-					alignemt_counter := 0;
-					next_state <= VALIDATE_ALIGNMENT;
+				--If received three valid alignments, enable output
+				if(s_valid_alignment = '1' and s_alignemt_counter = 3) then
+					next_state <= READ_PAYLOAD;
+				elsif(s_valid_alignment = '1') then
+					--Not synced yet. Wait for the next alignment word
+					next_state <= WAIT_PAYLOAD;
 				else
-					--did not completed validation.
+					--did not completed validation. 
 					next_state <= VALIDATE_ALIGNMENT;
 				end if;
 			----------------------------------------------------------
 			when WAIT_PAYLOAD =>
-				--only proceed if input serial flag is ON (input buffer is full)
-				if(s_data_sr_received = '1') then
-					--If waited for all all 5 payload bytes, wait for the alignment byte
-					if(payload_counter = 4) then
-						payload_counter := 0;
-						next_state <= VALIDATE_ALIGNMENT;
-					else
-						--keep waiting untill receive 5 payload bytes
-						payload_counter := payload_counter + 1;
-						next_state <= WAIT_PAYLOAD;
-					end if;
+				--If receive all 5 payload bytes, prepare to validate the alignment byte
+				if(s_data_sr_received = '1' and s_payload_counter = 5) then
+					next_state <= VALIDATE_ALIGNMENT;
 				else
-					--did not completed input buffer. Wait to fill it
+					--did not completed input buffer. Keep waiting until receive 5 payload bytes
 					next_state <= WAIT_PAYLOAD;
 				end if;
 			----------------------------------------------------------
 			when READ_PAYLOAD =>
-				--only proceed if input serial flag is ON (input buffer is full)
-				if(s_data_sr_received = '1') then
-					--If waited for all all 5 payload bytes, wait for the alignment byte
-					if(payload_counter = 4) then
-						payload_counter := 0;
-						next_state <= READ_ALIGNMENT;
-					else
-						--keep waiting untill receive 5 payload bytes
-						payload_counter := payload_counter + 1;
-						next_state <= READ_PAYLOAD;
-					end if;
+				--If receive all 5 payload bytes, prepare to read the alignment byte
+				if(s_data_sr_received = '1' and s_payload_counter = 5) then
+					next_state <= READ_ALIGNMENT;
 				else
-					--did not completed input buffer. Wait to fill it
+					--did not completed input buffer. Keep waiting untill receive 5 payload bytes
 					next_state <= READ_PAYLOAD;
-				end if;				
+				end if;			
 			----------------------------------------------------------
 			when READ_ALIGNMENT =>
 				--Check if alignment is valid
@@ -201,9 +188,7 @@ begin
 					next_state <= READ_ALIGNMENT;
 				end if;			
 			----------------------------------------------------------
-			when others => --RESET
-				alignemt_counter := 0;
-				payload_counter := 0;
+			when others => --RESET (Initial condition)
 				next_state <= VALIDATE_ALIGNMENT;
 		end case;
 	end process fsm_next_state_decoder;
@@ -211,7 +196,7 @@ begin
 	--sync_out behavior
 	sync_out <= '1' when ((next_state = READ_ALIGNMENT) or (next_state = READ_PAYLOAD)) else
 				'0';
-			
+				
 	--Bind output ports to signals
 	data_pl_out <= buffer_out;
 	data_en_out <= s_data_en_out;
