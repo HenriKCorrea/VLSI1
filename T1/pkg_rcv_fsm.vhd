@@ -113,17 +113,17 @@ package body pkg_rcv_fsm is
 					if(v(v_pos) = alignment(final_alignment_offset + v_pos))then
 						v_pos := v_pos - 1;
 					else
+						--Fail: 1 -> 0 transition happen too late
 						exit;
 					end if;
 				end loop;
-				
+
+				--At last, check if the present sent bit is wrong 'as expected'
 				if(v_pos = 0 and v(0) /= alignment(final_alignment_offset)) then
 					result := true;
 				end if;
 
 			end if;
-			--56
-			--48
 		end if;
 		return result;
 	end aux_is_alignment_broken;
