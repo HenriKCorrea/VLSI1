@@ -11,6 +11,7 @@ library ieee;
 
 library work;
 	use work.pkg_rcv_fsm.all;
+	use work.txt_util.all;
 
 entity tb_rcv_fsm is
 end tb_rcv_fsm;
@@ -29,7 +30,7 @@ architecture tb_rcv_fsm of tb_rcv_fsm is
 	signal s_clk_in, s_data_sr_in, s_data_en_out, s_sync_out : STD_LOGIC := '0'; 
 	signal s_rst_in: std_logic := '1';
     signal s_data_pl_out :  STD_LOGIC_VECTOR ( 7 downto 0 ) := (others => '0');
-	signal s_serial_queue: STD_LOGIC_VECTOR (47 downto 0) := (others => '0');
+	signal s_serial_queue: STD_LOGIC_VECTOR (103 downto 0) := (others => '0');
 	signal s_previous_sync_out: std_logic := '0';
 
 begin
@@ -40,7 +41,7 @@ begin
 	s_clk_in <= s_clk;
 	
 	--Queue insertion
-	s_serial_queue <= s_serial_queue (46 downto 0) & s_data_sr_in when (s_clk'event and s_clk = '1');
+	s_serial_queue <= s_serial_queue (102 downto 0) & s_data_sr_in when (s_clk'event and s_clk = '1');
 	s_previous_sync_out <= s_sync_out when (s_clk'event and s_clk = '1');
 	
 
@@ -67,8 +68,15 @@ begin
 	-- 2) se for borda de subida: ultimas 3 palavras de alinhamento devem ser validas
 	-- 3) se for borda de descida: observar falha no alinhamento // erro logo atras
 	sync_validation: process(s_sync_out)
+	constant alignment: std_logic_vector (7 downto 0) := "10100101";
 	begin
-		
+		if (s_sync_out = '1' and s_previous_sync_out = '0') then
+			assert (s_serial_queue(7 downto 0) = alignment and
+				s_serial_queue(55 downto 48) = alignment and
+				s_serial_queue(103 downto 96) = alignment)
+			report "Test alignment validation: Invalid sync transition 0 => 1: " --& hstr(s_serial_queue)-- & " " & hstr(s_serial_queue(20 downto 13)) & " " & hstr(s_serial_queue(33 downto 26))
+			severity error;
+		end if;
 	end process sync_validation;
 
 
