@@ -32,6 +32,31 @@ package pkg_rcv_fsm is
 	-----------------------------------------  
 	function aux_is_alignment_broken (v : std_logic_vector)
 		return boolean;	 
+
+	-----------------------------------------
+	--Auxiliary procedure to generate a dummy payload
+	--max payload size is 39 (considering zero)
+	-----------------------------------------  
+	procedure aux_generate_dummy_payload_v2
+	(signal clk: in std_logic;
+	 signal data: out std_logic;
+	 constant size: integer range 0 to 39);			
+
+	-----------------------------------------
+	--Auxiliary procedure to generate the alignment data to the serial input
+	--max alignment size is 7 (considering zero)
+	-----------------------------------------  
+	procedure aux_generate_alignment_v2
+	(signal clk: in std_logic;
+	 signal data: out std_logic;
+	 constant size: integer range 0 to 7);	
+
+	-----------------------------------------
+	--Auxiliary procedure to siychronize device
+	-----------------------------------------  
+	procedure aux_sync_device
+	(signal clk: in std_logic;
+	 signal data: out std_logic);
   
   
 end pkg_rcv_fsm;
@@ -127,6 +152,57 @@ package body pkg_rcv_fsm is
 		end if;
 		return result;
 	end aux_is_alignment_broken;
+
+	-----------------------------------------
+	--Auxiliary procedure to generate a dummy payload
+	--max payload size is 39 (considering zero)
+	-----------------------------------------  
+	procedure aux_generate_dummy_payload_v2
+	(signal clk: in std_logic;
+	 signal data: out std_logic;
+	 constant size: integer range 0 to 39) is
+	---------------------------------
+	constant dummy_payload: std_logic_vector := x"123456789A";
+	begin
+		--Iterate dummy_payload from the Most Significant Bit (MSB) to the Least Significant Bit (LSB)
+		for i in 0 to size loop
+			data <= dummy_payload(i);					--Send bit
+			wait until clk = '1'; wait until clk = '0';	--Wait one clock period
+		end loop;
+	end aux_generate_dummy_payload_v2;	
+
+	-----------------------------------------
+	--Auxiliary procedure to generate the alignment data to the serial input
+	--max alignment size is 7 (considering zero)
+	-----------------------------------------  
+	procedure aux_generate_alignment_v2
+	(signal clk: in std_logic;
+	 signal data: out std_logic;
+	 constant size: integer range 0 to 7) is
+	 -------------------------------------------
+	 constant alignment: std_logic_vector (7 downto 0) := "10100101";
+	 begin
+		--Iterate alignment from the Most Significant Bit (MSB) to the Least Significant Bit (LSB)
+		for i in 0 to size loop
+			data <= alignment(i);						--Send bit
+			wait until clk = '1'; wait until clk = '0';	--Wait one clock period
+		end loop;
+	 end aux_generate_alignment_v2;
+
+	-----------------------------------------
+	--Auxiliary procedure to siychronize device
+	-----------------------------------------  
+	procedure aux_sync_device
+	(signal clk: in std_logic;
+	 signal data: out std_logic) is
+	 ----------------------------------------
+	 begin
+	 	aux_generate_alignment_v2(clk, data, 7);
+		aux_generate_dummy_payload_v2(clk, data, 39);
+	 	aux_generate_alignment_v2(clk, data, 7);
+		aux_generate_dummy_payload_v2(clk, data, 39);		
+		aux_generate_alignment_v2(clk, data, 7);
+	 end aux_sync_device; 
 	
 end pkg_rcv_fsm;
 

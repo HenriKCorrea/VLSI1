@@ -72,10 +72,13 @@ begin
 	test: process
 	begin
 		wait until s_rst_in = '0';
+		--TODO: overwrite these sample procedures for formal test procedures
+		aux_sync_device(s_clk, s_data_sr_in);
 		loop
-			aux_generate_alignment(s_clk, s_data_sr_in);
 			aux_generate_dummy_payload(s_clk, s_data_sr_in);
+			aux_generate_alignment(s_clk, s_data_sr_in);
 		end loop;
+		s_finishTest <= '1';
 	end process test;
 	
 	sync_validation: process(s_sync_out)
@@ -103,12 +106,6 @@ begin
 
 			--Validate 1 -> 0 transition
 			assert (sync_validation = true) report "Test alignment validation: Invalid sync transition 1 => 0" severity error;
-
-			--Check if 1 -> 0 reason was an invalid std_logic value
-			--assert (s_data_sr_in /= '1' and s_data_sr_in /= '0') report "Test alignment validation: Invalid sync transition 1 => 0: Data in signal WAS NOT suspendend" severity error;
-			
-			--Check if 1 -> 0 reason was caused by wrong alignment word
-			--assert (aux_is_alignment_broken(s_serial_queue(55 downto 0)) = true) report "Test alignment validation: Invalid sync transition 1 => 0: No error was detected in the present serial data in alignment bit (is this an alignment word?)" severity error;
 		end if;
 	end process sync_validation;
 
