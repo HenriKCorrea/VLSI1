@@ -43,6 +43,9 @@ architecture arch_rcv_fsm of rcv_fsm is
 	--Flag used to indicate when an error occured during alignment validation
 	signal s_invalid_alignment : std_logic := '0';	
 	
+	--Flag: Indicate if input data has been suspended by the user
+	signal s_suspended_input_data : std_logic := '0';
+	
 	--Signal of new data available at paralel output
 	signal s_data_en_out : std_logic := '0';
 	
@@ -53,6 +56,8 @@ architecture arch_rcv_fsm of rcv_fsm is
 	signal s_payload_counter : integer range 0 to 5 := 0;		
 begin
 
+	s_suspended_input_data <= 	'1' when data_sr_in /= '1' and data_sr_in /= '0' else
+								'0';
 	
 	validate_alignment_process: process(clk_in)
 	variable v_count : integer range 0 to 7 := 7;
@@ -142,7 +147,7 @@ begin
 		end if;
 	end process fsm_transition;
 
-	fsm_next_state_decoder: process(state, s_data_sr_received, s_valid_alignment, s_invalid_alignment)
+	fsm_next_state_decoder: process(state, s_data_sr_received, s_valid_alignment, s_invalid_alignment, s_suspended_input_data)
 	begin
 		case state is
 			---------------------------------------------------------
@@ -171,6 +176,9 @@ begin
 				--If receive all 5 payload bytes, prepare to read the alignment byte
 				if(s_data_sr_received = '1' and s_payload_counter = 5) then
 					next_state <= READ_ALIGNMENT;
+				elsif(s_suspended_input_data = '1') then
+					--FAIL: data transmission has been suspended.
+					next_state <= VALIDATE_ALIGNMENT;
 				else
 					--did not completed input buffer. Keep waiting untill receive 5 payload bytes
 					next_state <= READ_PAYLOAD;
@@ -180,7 +188,7 @@ begin
 				--Check if alignment is valid
 				if(s_valid_alignment = '1') then
 					next_state <= READ_PAYLOAD;
-				elsif(s_invalid_alignment = '1') then
+				elsif(s_invalid_alignment = '1' or s_suspended_input_data = '1') then
 					--Invalid alignment: reset state
 					next_state <= VALIDATE_ALIGNMENT;
 				else
