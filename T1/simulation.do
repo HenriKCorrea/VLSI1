@@ -2,6 +2,7 @@
 vlib work
 
 ## compile source code
+vcom ./txt_util.vhd
 vcom -cover sbcexf ./rcv_fsm.vhd
 vcom -cover sbcexf ./pkg_rcv_fsm.vhd
 vcom -cover sbcexf ./tb_rcv_fsm.vhd
