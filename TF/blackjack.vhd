@@ -10,7 +10,7 @@ library ieee;
     use ieee.std_logic_unsigned.all;
 	
 library work;
-	use work.all;
+	use work.deck_controller;
 
 entity blackjack is
 	generic(
