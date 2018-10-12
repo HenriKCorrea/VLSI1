@@ -24,10 +24,11 @@ entity blackjack is
 	debug 		: in std_logic; 
 	show 		: in std_logic; 
 	card		: in std_logic_vector(3 downto 0);
+	request		: out std_logic;
 	win			: out std_logic; 
 	lose		: out std_logic; 
 	tie			: out std_logic; 
-	total		: out std_logic_vector(4 downto 0);
+	total		: out std_logic_vector(4 downto 0));
 end blackjack;
 
 
@@ -36,56 +37,41 @@ architecture arch_blackjack of blackjack is
 	--Blackjact Finite State Machine type definition
 	type fsm_state_type is (PLAYER_BEGIN_1, PLAYER_WAIT_1, DEALER_BEGIN_1, DEALER_WAIT_1, 
 		PLAYER_BEGIN_2, PLAYER_WAIT_2, DEALER_BEGIN_2, DEALER_WAIT_2, 
-		PLAYER_WAIT, PLAYER_HIT, DEALER_WAIT, DEALER_HIT, GAME_OVER, RESET );
-	signal state		: fsm_state_type := RESET;
+		PLAYER_WAIT, PLAYER_HIT, DEALER_WAIT, DEALER_HIT, GAME_OVER, RESET_BLACKJACK );
+	signal state		: fsm_state_type := RESET_BLACKJACK;
 	signal next_state	: fsm_state_type := PLAYER_BEGIN_1;
 	
 	--shift registers used to board detector flag
-	signal s_hit_reg_a, s_hit_reg_b, s_hit_rise s_stay_reg_a, s_stay_reg_b, s_stay_rise : std_logic := '0';
-	
-	--Count the number of received payload bytes after an alignment validation
-	--signal s_payload_counter : integer range 0 to 5 := 0;		
-	
-	--signal buffer_in, buffer_eval, buffer_out : std_logic_vector(7 downto 0) := (others => '0');
-	
-	
-	--TODO: Write player and dealer controller deck signals
-	--Player deck controller signals
+	signal s_hit_reg_a, s_hit_reg_b, s_hit_rise, s_stay_reg_a, s_stay_reg_b, s_stay_rise : std_logic := '0';
 	
 	--Player deck controller signals
 	signal s_player_start_in : std_logic := '0';
-	signal s_player_encoded_card_in : std_logic := '0';
 	signal s_player_buy_card_out : std_logic := '0';
-	signal s_player_is_available_out : std_logic := '0';
-	signal s_player_score_out : std_logic := '1';
+	signal s_player_is_available_out : std_logic := '1';
+	signal s_player_score_out : std_logic_vector(4 downto 0) := (others => '0');
 	
 	--Dealer deck controller signals
 	signal s_dealer_start_in : std_logic := '0';
-	signal s_dealer_encoded_card_in : std_logic := '0';
 	signal s_dealer_buy_card_out : std_logic := '0';
-	signal s_dealer_is_available_out : std_logic := '0';
-	signal s_dealer_score_out : std_logic := '1';
+	signal s_dealer_is_available_out : std_logic := '1';
+	signal s_dealer_score_out : std_logic_vector(4 downto 0) := (others => '0');
 
 	--Deck FIFO external module
 	signal s_request_in : std_logic := '0';
 	signal s_card_out : std_logic := '0';
-	
-	--Common system signals
-	-- signal s_clk : std_logic := '0';
-	-- signal s_rst : std_logic := '0';
 	
 begin
 
 	--board detector process
 	shift_reg: process(clk)
 	begin
-		if clk'event and clk = '1' then
+		if clk'event and clk = CLK_EDGE then
 			if(reset = '1') then
-				s_hit_reg_a := '0';
-				s_hit_reg_b := '0';
+				s_hit_reg_a <= '0';
+				s_hit_reg_b <= '0';
 				
-				s_stay_reg_a := '0';
-				s_stay_reg_b := '0';				
+				s_stay_reg_a <= '0';
+				s_stay_reg_b <= '0';				
 			else
 				s_hit_reg_b <= s_hit_reg_a;
 				s_hit_reg_a <= hit;
@@ -94,7 +80,7 @@ begin
 				s_stay_reg_a <= stay;
 			end if;
 		end if;
-	end shift_reg;
+	end process shift_reg;
 	
 	--Board detector signal
 	s_hit_rise <= 	'1' when (s_hit_reg_a = '1') and (s_hit_reg_b = '1') else
@@ -108,7 +94,7 @@ begin
 	begin
 		if clk'event and clk = CLK_EDGE then
 			if reset = '1' then
-				state <= RESET;
+				state <= RESET_BLACKJACK;
 			else
 				state <= next_state;
 			end if;
@@ -134,7 +120,7 @@ begin
 					next_state <= PLAYER_WAIT_1;
 				end if;
 			----------------------------------------------------------
-			when DEALER_BEGIN_1_BEGIN_1 =>
+			when DEALER_BEGIN_1 =>
 				--Send signal to dealer deck controller buy the first card and jump to next state
 				next_state <= DEALER_WAIT_1;
 			----------------------------------------------------------
@@ -175,7 +161,7 @@ begin
 			----------------------------------------------------------			
 			when PLAYER_WAIT =>
 				--Only read player inputs if deck controller is available
-				if(s_player_is_available_out = '1')
+				if(s_player_is_available_out = '1') then
 				
 					--Player loses automatically if score is greater than 21
 					if(s_player_score_out > 21) then
@@ -209,7 +195,7 @@ begin
 			----------------------------------------------------------
 			when DEALER_WAIT =>
 				--Only evaluate dealer score if deck controller is available
-				if(s_dealer_is_available_out = '1')
+				if(s_dealer_is_available_out = '1') then
 				
 					--Dealer stops playing if score is greather than 16
 					if(s_dealer_score_out > 16) then
@@ -239,12 +225,13 @@ begin
 	
 	--Player deck instantiation
 	player_deck: entity work.deck_controller
+	generic map (CLK_EDGE => CLK_EDGE)
 	port map
 	(
 		clk_in => clk,
-		rst_in => rst,		
+		rst_in => reset,		
 		start_in => s_player_start_in,	
-		encoded_card_in => s_player_encoded_card_in,
+		encoded_card_in => card,
 		buy_card_out => s_player_buy_card_out,
 		is_available_out => s_player_is_available_out,
 		score_out => s_player_score_out
@@ -252,12 +239,13 @@ begin
 	
 	--Dealer deck instantiation
 	dealer_deck: entity work.deck_controller
+	generic map (CLK_EDGE => CLK_EDGE)
 	port map
 	(
 		clk_in => clk,
-		rst_in => rst,
+		rst_in => reset,
 		start_in => s_dealer_start_in,	
-		encoded_card_in => s_dealer_encoded_card_in,
+		encoded_card_in => card,
 		buy_card_out => s_dealer_buy_card_out,
 		is_available_out => s_dealer_is_available_out,
 		score_out => s_dealer_score_out
@@ -269,7 +257,33 @@ begin
 							
 	--Send signal to dealer deck controller start the card requisition process
 	s_dealer_start_in <=	'1' when (state = DEALER_BEGIN_1) or (state = DEALER_BEGIN_2) or (state = DEALER_HIT) else
-							'0';							
+							'0';
+
+	--External deck FIFO card request mux
+	request <=	s_player_buy_card_out when s_player_is_available_out = '0' else
+				s_dealer_buy_card_out when s_dealer_is_available_out = '0' else
+				'0';
 	
+	--Player win signal is displayed when game ends, score is not above 21 and higher than dealer score
+	win <=	'1' when state = GAME_OVER and s_player_score_out <= 21 and s_player_score_out > s_dealer_score_out else
+			'0';
+			
+	--Player lose signal is displayed when game ends, score is above 21 or lower than dealer score		
+	lose <=	'1' when (state = GAME_OVER) and ((s_player_score_out > 21) or (s_player_score_out < s_dealer_score_out)) else
+			'0';
+			
+	--Game tie signal is displayed when game ends, player and dealer score are equal
+	tie <=	'1' when state = GAME_OVER and s_player_score_out = s_dealer_score_out else
+			'0';
+			
+	--Total score output: display player score or dealer score according to the table below:
+	--	state signal	|	DEBUG input	|	SHOW input	|	TOTAL output
+	--		x			|		1		|		0		|	player score
+	--		x			|		1		|		1		|	dealer score
+	--	GAME_OVER		|		x		|		0		|	player score
+	--	GAME_OVER		|		x		|		1		|	dealer score
+	--		x			|		x		|		0		|	player score
+	total <=	s_dealer_score_out when show = '1' and ((state = GAME_OVER) or (debug = '1')) else
+				s_player_score_out;
 	
 end arch_blackjack;
