@@ -1,28 +1,20 @@
 --------------------------------------------------
 -- File:    tb_rcv_fsm.vhd
 -- Author:  Henrique Krausburg Corr�a <henrique.krausburg.correa@gmail.com>
--- Author:  Giuseppe Generoso
+-- Author:  Giuseppe Generoso <giuseppe.generoso@acad.pucrs.br>
 --------------------------------------------------
 
 --TODO: Testes que faltam ser implementados:
---data_pl_out (passivo):	S� pode ocorrer uma mudan�a no barramento se a flag de data_en_out estiver ativa ou se o reset foi acionado;
 --data_pl_out (ativo): 	Escrever uma rajada de dados serial (5x payload) e verificar se est� na sa�da;
 --						NOTA: O requisito n�o deixa claro quanto tempo leva para o dado estar dispon�vel na sa�da paralela. Considerar uma toler�ncia de 7 ciclos de clock.
 --						DICA: mandar pelo menos 2 bytes de payload replicados
---data_en_out (passivo): 	analisar transi��es v�lidas do sinal conforme requisito
---							NOTA: n�o esquecer de testar se o sinal N�O ficou mais de um ciclo em n�vel alto (talvez fazer uma fila de hist�rico de 2 bits).
---reset (ativo):	verificar se REALMENTE funciona apenas em borda de subida (tentar ressetar em borda de descida);
---					reiniciar ap�s sincronizado (flag de alinhamento � desativada);
---					reiniciar antes da sincroniza��o (verificar se alinhamento � ativo depois de 3x palavras)
---sync_out(ativo):	Para borda de descida 1 -> 0, verificar se a transmiss�o de dados serial foi interrompida (exemplo: s_data_sr_in <= 'Z')
---					Para borda de descida 1 -> 0, verificar se realmente ocorreu falha no alinhamento
---
 --POR FIM: Test coverage passando 100%
 
 library ieee;
     use ieee.std_logic_1164.all;
     use ieee.std_logic_arith.all;
-    use ieee.std_logic_unsigned.all;
+	use ieee.std_logic_unsigned.all;
+	use ieee.std_logic_misc.all;
 
 library work;
 	use work.pkg_rcv_fsm.all;
@@ -40,6 +32,7 @@ architecture tb_rcv_fsm of tb_rcv_fsm is
 	-- auxiliary signals
 	signal s_clk: std_logic := '1';				--Clock reference used in testbench
 	signal s_finishTest: std_logic := '0';		--Flag to indicate if test finish
+	signal change: std_logic := '0';
 	
 	--signals used to map  (CUV)
 	signal s_clk_in, s_data_sr_in, s_data_en_out, s_sync_out : STD_LOGIC := '0'; 
@@ -47,6 +40,7 @@ architecture tb_rcv_fsm of tb_rcv_fsm is
     signal s_data_pl_out :  STD_LOGIC_VECTOR ( 7 downto 0 ) := (others => '0');
 	signal s_serial_queue: STD_LOGIC_VECTOR (103 downto 0) := (others => '0');
 	signal s_previous_sync_out: std_logic := '0';
+	signal s_previous_data_pl_out :  STD_LOGIC_VECTOR ( 7 downto 0 ) := (others => '0');
 
 begin
 
@@ -58,6 +52,7 @@ begin
 	--Queue insertion
 	s_serial_queue <= s_serial_queue (102 downto 0) & s_data_sr_in when (s_clk'event and s_clk = '1');
 	s_previous_sync_out <= s_sync_out when (s_clk'event and s_clk = '1');
+	s_previous_data_pl_out <= s_data_pl_out when (s_clk'event and s_clk = '1');
 	
 
 	--Control reset to sync the serial data to be sent with the clock period
@@ -72,7 +67,6 @@ begin
 	test: process
 	begin
 		wait until s_rst_in = '0';
-		--TODO: overwrite these sample procedures for formal test procedures
 		aux_sync_device(s_clk, s_data_sr_in);
 		loop
 			aux_generate_dummy_payload(s_clk, s_data_sr_in);
@@ -87,27 +81,62 @@ begin
 	begin
 		if (s_sync_out = '1' and s_previous_sync_out = '0') then
 			--Validate 0 -> 1 transition
+			-- Check if the last 3 alignment were correct
 			assert (s_serial_queue(7 downto 0) = alignment and
 				s_serial_queue(55 downto 48) = alignment and
 				s_serial_queue(103 downto 96) = alignment)
-			report "Test alignment validation: Invalid sync transition 0 => 1: " --& hstr(s_serial_queue)-- & " " & hstr(s_serial_queue(20 downto 13)) & " " & hstr(s_serial_queue(33 downto 26))
-			severity error;
+			report "Test alignment validation: Invalid sync transition 0 => 1" severity error;
 		elsif(s_sync_out = '0' and s_previous_sync_out = '1') then
 			--Validate 1 -> 0 transition
 			
 			--Check if reset button has been pressed
-			sync_validation := sync_validation or (s_rst_in = '1');
-
+			if (s_rst_in = '1') then
+				sync_validation := true;
 			--Check if 1 -> 0 reason was an invalid std_logic value
-			sync_validation := sync_validation or (s_data_sr_in /= '1' and s_data_sr_in /= '0');
-
+			elsif (s_data_sr_in /= '1' and s_data_sr_in /= '0') then
+				sync_validation := true;
 			--Check if 1 -> 0 reason was caused by wrong alignment word
-			sync_validation := sync_validation or aux_is_alignment_broken(s_serial_queue(55 downto 0));
-
+			elsif (aux_is_alignment_broken(s_serial_queue(55 downto 0))) then
+				sync_validation := true;
+			end if;
 			--Validate 1 -> 0 transition
 			assert (sync_validation = true) report "Test alignment validation: Invalid sync transition 1 => 0" severity error;
 		end if;
 	end process sync_validation;
+
+	data_pl_out_validation: process (s_data_pl_out)
+	begin
+		-- se if data_pl_out changed
+		change <= or_reduce(s_data_pl_out xor s_previous_data_pl_out);
+
+		if (change = '1') then 
+			-- If YES then check:
+			
+			-- test if data_en_out permit data_pl_out change
+			assert (s_data_en_out = '1') report "Test data_pl_out validation: Invalid change of data: data_en_out is DOWN" severity error;
+			-- test if rst is high to validate data_pl_out change
+			assert (s_rst_in /= '1') report "Test data_pl_out validation: Invalid change of data: s_rst_in is HIGH" severity error;
+		end if;
+	end process data_pl_out_validation;
+
+	data_en_out_master_clock: process(s_data_en_out, s_clk)
+	variable cont: integer := 0;
+	begin
+		-- Validate data_en_out in master clock
+		-- Use falling edge
+		if (s_clk'event and s_clk = '0') then
+			-- check if data_en_out is up
+			if (s_data_en_out = '1') then
+				-- if YES then count +1
+				cont := cont + 1;
+			elsif (s_data_en_out = '0') then
+				-- if NO then count = 0
+				cont := 0;
+			end if;
+		end if;
+		-- if count is bigger than 2, in others words, stayed up after two falling edges then assert
+		assert(cont < 2) report "Test data_en_out validation: Invalid enable: master clock already passed" severity error;
+	end process data_en_out_master_clock;
 
 	--Instantiate CUV
 	cuv: entity work.rcv_fsm

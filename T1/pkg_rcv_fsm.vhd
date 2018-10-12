@@ -1,7 +1,7 @@
 --------------------------------------------------
 -- File:    pkg_rcv_fsm.vhd
 -- Author:  Henrique Krausburg Corrêa <henrique.krausburg.correa@gmail.com>
--- Author:  Giuseppe Generoso
+-- Author:  Giuseppe Generoso <giuseppe.generoso@acad.pucrs.br>
 --------------------------------------------------
 
 --Help page about VHDL predefined attributes: https://www.csee.umbc.edu/portal/help/VHDL/attribute.html

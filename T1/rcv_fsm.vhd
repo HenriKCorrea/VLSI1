@@ -1,7 +1,7 @@
 --------------------------------------------------
 -- File:    rcv_fsm.vhd
 -- Author:  Henrique Krausburg Corrêa <henrique.krausburg.correa@gmail.com>
--- Author:  Giuseppe Generoso
+-- Author:  Giuseppe Generoso <giuseppe.generoso@acad.pucrs.br>
 --------------------------------------------------
 
 library ieee;
