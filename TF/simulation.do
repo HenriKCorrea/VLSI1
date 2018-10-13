@@ -21,6 +21,7 @@ radix -hexadecimal
 ##Display only the first name of the wave signal instead of full name
 config wave -signalnamewidth 1
 ##Add all waveforms
+add wave -divider "Testbench"
 add wave sim:/tb_blackjack/s_clk
 add wave sim:/tb_blackjack/s_rst
 add wave sim:/tb_blackjack/s_stay
