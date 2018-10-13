@@ -80,10 +80,10 @@ begin
 	end process shift_reg;
 	
 	--Board detector signal
-	s_hit_rise <= 	'1' when (s_hit_reg_a = '1') and (s_hit_reg_b = '1') else
+	s_hit_rise <= 	'1' when (s_hit_reg_a = '1') and (s_hit_reg_b = '0') else
 					'0';
 					
-	s_stay_rise <= 	'1' when (s_stay_reg_a = '1') and (s_stay_reg_b = '1') else
+	s_stay_rise <= 	'1' when (s_stay_reg_a = '1') and (s_stay_reg_b = '0') else
 					'0';					
 
 	--Finite State Machine actual state

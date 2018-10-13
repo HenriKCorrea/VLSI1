@@ -1,5 +1,5 @@
 --------------------------------------------------
--- File:    tbi_blackjack.vhd
+-- File:    tb_blackjack.vhd
 -- Author:  Henrique Krausburg Correa <henrique.krausburg.correa@gmail.com>
 -- Author:  Giuseppe Generoso <giuseppe.generoso@acad.pucrs.br>
 --------------------------------------------------
@@ -14,11 +14,11 @@ library work;
 	--use work.pkg_tb_blackjack.all;
 	use work.txt_util.all;
 
-entity tbi_blackjack is
-end tbi_blackjack;
+entity tb_blackjack is
+end tb_blackjack;
 
 
-architecture arch_tbi_blackjack of tbi_blackjack is
+architecture arch_tb_blackjack of tb_blackjack is
 	--Auxiliary constants
 	constant 	CLK_EDGE    	: std_logic := '1';
 	constant 	INV_CLK_EDGE    : std_logic := not CLK_EDGE;
@@ -63,6 +63,14 @@ begin
 		wait;
 		--s_finishTest <= '1';
 	end process test;
+	
+	--Instantiate external card deck memory (FIFO)
+	deck_fifo: entity work.card_deck_memory
+	port map
+	(
+		request => s_request,
+		card => s_card
+	);
 
 	--Instantiate CUV
 	cuv: entity work.blackjack
@@ -83,4 +91,4 @@ begin
 		total	=> s_total			
 	);
 
-end arch_tbi_blackjack;
+end arch_tb_blackjack;
