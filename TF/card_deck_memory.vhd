@@ -38,9 +38,9 @@ architecture arch_card_deck_memory of card_deck_memory is
 	
 	--Set tests definition HERE!
 	--Convention: constant TEST_NAME : std_logic_cector := x"<first card>.......<last card>"
-	constant FIRST_CARD : std_logic_vector := x"0";	--Mandatory: the first card is not consumed by 
-	constant TEST_1 : std_logic_vector := x"6d126841";
-	constant TEST_2 : std_logic_vector := x"cab65";
+	constant FIRST_CARD : std_logic_vector := x"0";			--Mandatory: the first card is not consumed by anyone
+	constant TEST_1 : std_logic_vector := x"6d126844";		--Test 1: Successfull gameplay: Player wins. Expected player score: 0, 6, 17, 13 and 21. Expected dealer score: 0, 10, 12, 16 and 20
+	constant TEST_2 : std_logic_vector := x"cab65";			--Test 2: Successfull gameplay: Player loses. Expected player score: 0, 10 and 20. Expected dealer score: 0, 10, 16 and 21
 	
 	--TEST_SET: Set all tests to be applied HERE!
 	constant TEST_SET : std_logic_vector := FIRST_CARD & TEST_1 & TEST_2;
