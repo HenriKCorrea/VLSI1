@@ -262,15 +262,15 @@ begin
 				'0';
 	
 	--Player win signal is displayed when game ends, score is not above 21 and higher than dealer score
-	win <=	'1' when state = GAME_OVER and s_player_score_out <= 21 and s_player_score_out > s_dealer_score_out else
+	win <=	'1' when next_state = GAME_OVER and s_player_score_out <= 21 and s_player_score_out > s_dealer_score_out else
 			'0';
 			
 	--Player lose signal is displayed when game ends, score is above 21 or lower than dealer score		
-	lose <=	'1' when (state = GAME_OVER) and ((s_player_score_out > 21) or (s_player_score_out < s_dealer_score_out)) else
+	lose <=	'1' when next_state = GAME_OVER and ((s_player_score_out > 21) or (s_player_score_out < s_dealer_score_out)) else
 			'0';
 			
 	--Game tie signal is displayed when game ends, player and dealer score are equal
-	tie <=	'1' when state = GAME_OVER and s_player_score_out = s_dealer_score_out else
+	tie <=	'1' when next_state = GAME_OVER and s_player_score_out = s_dealer_score_out else
 			'0';
 			
 	--Total score output: display player score or dealer score according to the table below:
