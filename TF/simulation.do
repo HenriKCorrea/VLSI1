@@ -2,10 +2,11 @@
 vlib work
 
 ## compile source code
-#vcom ./txt_util.vhd
+vcom ./txt_util.vhd
+vcom ./pkg_tb_blackjack.vhd
+vcom ./card_deck_memory.vhd
 vcom -cover sbcexf ./deck_controller.vhd
 vcom -cover sbcexf ./blackjack.vhd
-vcom ./card_deck_memory.vhd
 vcom ./tb_blackjack.vhd
 
 ## start simulation command
@@ -21,7 +22,7 @@ radix -hexadecimal
 ##Display only the first name of the wave signal instead of full name
 config wave -signalnamewidth 1
 ##Add all waveforms
-add wave -divider "Testbench"
+add wave -divider "Testbench (CUV Interface)"
 add wave sim:/tb_blackjack/s_clk
 add wave sim:/tb_blackjack/s_rst
 add wave sim:/tb_blackjack/s_stay
@@ -34,6 +35,7 @@ add wave sim:/tb_blackjack/s_win
 add wave sim:/tb_blackjack/s_lose
 add wave sim:/tb_blackjack/s_tie
 add wave sim:/tb_blackjack/s_total
+add wave sim:/tb_blackjack/s_currentTest
 radix signal sim:/tb_blackjack/s_total unsigned
 
 add wave -divider "CUV Internals"
