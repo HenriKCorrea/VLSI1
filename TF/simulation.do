@@ -2,7 +2,7 @@
 vlib work
 
 ## compile source code
-vcom ./txt_util.vhd
+#vcom ./txt_util.vhd
 vcom ./pkg_tb_blackjack.vhd
 vcom ./card_deck_memory.vhd
 vcom -cover sbcexf ./deck_controller.vhd
@@ -68,5 +68,5 @@ add wave sim:/tb_blackjack/deck_fifo/request
 #force -freeze sim:/blackjack/clk_in 1 0, 0 {5 ns} -r 10
 
 ###run simulation
-run 1600 ns
+run 3270 ns
 wave zoom full
