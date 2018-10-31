@@ -25,7 +25,7 @@ end tb_blackjack;
 architecture arch_tb_blackjack of tb_blackjack is
 
 	--Auxiliary state to show current test when debugging waveform in ModelSim
-	type t_testset is (STARTING, TEST_1_PLAYER_WIN, TEST_2_PLAYER_LOSE, FINISH);
+	type t_testset is (STARTING, TEST_1_PLAYER_WIN, TEST_2_PLAYER_LOSE, TEST_3_TIE, TEST_4_ACE_ONLY, TEST_5_PLAYER_PASSING_21, TEST_6_DEALER_PASSING_21, TEST_7_DECODE_ALL_CARDS, TEST_8_HIT_STAY, FINISH);
 
 	--Auxiliary constants
 	constant 	CLK_EDGE    	: std_logic := '1';
@@ -66,6 +66,24 @@ begin
 		
 		s_currentTest <= TEST_2_PLAYER_LOSE;
 		test_2_player_lose(s_clk, s_rst, s_stay, s_hit, s_debug, s_show, s_card, s_request, s_win, s_lose, s_tie, s_total);
+		
+		s_currentTest <= TEST_3_TIE;
+		test_3_tie(s_clk, s_rst, s_stay, s_hit, s_debug, s_show, s_card, s_request, s_win, s_lose, s_tie, s_total);
+		
+		s_currentTest <= TEST_4_ACE_ONLY;
+		test_4_ace_only(s_clk, s_rst, s_stay, s_hit, s_debug, s_show, s_card, s_request, s_win, s_lose, s_tie, s_total);
+		
+		s_currentTest <= TEST_5_PLAYER_PASSING_21;
+		test_5_player_passing_21(s_clk, s_rst, s_stay, s_hit, s_debug, s_show, s_card, s_request, s_win, s_lose, s_tie, s_total);
+		
+		s_currentTest <= TEST_6_DEALER_PASSING_21;
+		test_6_dealer_passing_21(s_clk, s_rst, s_stay, s_hit, s_debug, s_show, s_card, s_request, s_win, s_lose, s_tie, s_total);
+
+		s_currentTest <= TEST_7_DECODE_ALL_CARDS;
+		test_7_decode_all_cards(s_clk, s_rst, s_stay, s_hit, s_debug, s_show, s_card, s_request, s_win, s_lose, s_tie, s_total);
+		
+		s_currentTest <= TEST_8_HIT_STAY;
+		test_8_hit_stay_press_test(s_clk, s_rst, s_stay, s_hit, s_debug, s_show, s_card, s_request, s_win, s_lose, s_tie, s_total);
 		
 		--End test
 		s_currentTest <= FINISH; s_finishTest <= '1'; wait until s_clk = '0'; wait;	
