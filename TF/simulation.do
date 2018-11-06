@@ -14,7 +14,7 @@ vcom ./tb_blackjack.vhd
 #-wlf: place to save simulation files
 #-wlfdeleteonquit: Flag to delete all temporary files when simulation ends
 #-coverage: Run coverage test in this simulation
-vsim -novopt -wlf /tmp/TF -wlfdeleteonquit work.tb_blackjack
+vsim -coverage -novopt -wlf /tmp/TF -wlfdeleteonquit work.tb_blackjack
 
 ###set waveforms and additional display options
 ##Set default radix of all waveforms to be added as hexadecimal
@@ -68,5 +68,5 @@ add wave sim:/tb_blackjack/deck_fifo/request
 #force -freeze sim:/blackjack/clk_in 1 0, 0 {5 ns} -r 10
 
 ###run simulation
-run 3270 ns
+run 4000 ns
 wave zoom full

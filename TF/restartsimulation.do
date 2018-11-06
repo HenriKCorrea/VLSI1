@@ -8,5 +8,5 @@ vcom ./tb_blackjack.vhd
 
 ##Restart and run simulation
 restart -force
-run 3270 ns
+run 4000 ns
 wave zoom full
