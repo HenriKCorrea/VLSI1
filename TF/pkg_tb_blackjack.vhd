@@ -967,6 +967,8 @@ package body pkg_tb_blackjack is
 				
 		--Second round: Reset blackjack
 		aux_reset_and_check(clk, reset, debug, show, win, lose, tie, total, msg_prefix & "2nd round: ");
+		wait until request = '1';	--Wait dealer take a card
+		aux_reset_and_check(clk, reset, debug, show, win, lose, tie, total, msg_prefix & "2nd round: ");
 		
 		--increment scores to set expected initial score equal to zero
 		player_score_index := player_score_index + 1;
@@ -981,6 +983,8 @@ package body pkg_tb_blackjack is
 		aux_dealer_final_hit_check(clk, debug, show, win, '0', lose, '1', tie, '0', total, dealer_score(dealer_score_index), player_score(player_score_index), msg_prefix & "2nd round: ");
 		
 		--Third and final round: Reset blackjack
+		aux_reset_and_check(clk, reset, debug, show, win, lose, tie, total, msg_prefix & "3rd round: ");
+		wait until request = '1';	--Wait dealer take a card
 		aux_reset_and_check(clk, reset, debug, show, win, lose, tie, total, msg_prefix & "3rd round: ");
 
 		--increment scores to set expected initial score equal to zero
