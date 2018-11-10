@@ -222,7 +222,11 @@ begin
 	
 	--Player deck instantiation
 	player_deck: entity work.deck_controller
-	generic map (CLK_EDGE => CLK_EDGE)
+	generic map 
+	(
+		CLK_EDGE => CLK_EDGE,
+		IS_FIRST_TO_PLAY => '1'
+	)
 	port map
 	(
 		clk_in => clk,
@@ -236,7 +240,11 @@ begin
 	
 	--Dealer deck instantiation
 	dealer_deck: entity work.deck_controller
-	generic map (CLK_EDGE => CLK_EDGE)
+	generic map 
+	(
+		CLK_EDGE => CLK_EDGE,
+		IS_FIRST_TO_PLAY => '0'
+	)
 	port map
 	(
 		clk_in => clk,

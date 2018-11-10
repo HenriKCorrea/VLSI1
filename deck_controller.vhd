@@ -11,7 +11,8 @@ library ieee;
 
 entity deck_controller is
 	generic(
-	CLK_EDGE    : std_logic := '1');
+	CLK_EDGE    		: std_logic := '1';
+	IS_FIRST_TO_PLAY 	: std_logic := '0');
 	
 	port(
 	clk_in 					: in std_logic; 
@@ -42,6 +43,10 @@ architecture arch_deck_controller of deck_controller is
 	
 	--The user score
 	signal s_score : std_logic_vector(4 downto 0) := "00000";
+
+	--Flag to indicate if controller is picking the first card
+	--Only useful if flag IS_FIRST_TO_PLAY is set to '1'
+	signal s_is_first_card : std_logic := '1';
 begin
 	
 	fsm_transition: process(clk_in)
@@ -62,7 +67,12 @@ begin
 			when IDLE => 
 				--wait to receive signal to buy a new card
 				if(start_in = '1') then
-					next_state <= BUY_CARD;
+					--If this is the player and is the first play, take the actual card and don't buy a new one
+					if(IS_FIRST_TO_PLAY = '1' and s_is_first_card = '1') then
+						next_state <= DECODE_CARD;
+					else
+						next_state <= BUY_CARD;
+					end if;
 				else
 					--Keep waiting
 					next_state <= IDLE;
@@ -73,6 +83,8 @@ begin
 				next_state <= DECODE_CARD;
 			----------------------------------------------------------
 			when DECODE_CARD =>
+				--Picked card: set flag to '0'
+				s_is_first_card <= '0';
 				--If decoded value is valid, calculate new score
 				if(s_decoded_card /= "00000") then
 					next_state <= CALCULATE_SCORE;
@@ -90,6 +102,7 @@ begin
 				next_state <= IDLE;
 			----------------------------------------------------------
 			when others => --RESET (Initial condition)
+				s_is_first_card <= '1';
 				next_state <= IDLE;
 		end case;
 	end process fsm_next_state_decoder;
@@ -122,7 +135,7 @@ begin
 	end process calculate_score_proc;	
 	
 	--Controls busy-wait flag
-	s_is_available <=	'1' when state = RESET or state = IDLE else
+	s_is_available <=	'1' when state = RESET or next_state = IDLE else
 							'0';
 							
 	is_available_out <= s_is_available;
