@@ -59,9 +59,22 @@ add wave -group "Dealer Deck" sim:/tb_blackjack/cuv/dealer_deck/state
 add wave -group "Dealer Deck" sim:/tb_blackjack/cuv/dealer_deck/next_state
 
 add wave -divider "Deck FIFO"
-#add wave -hex {sim:/tb_blackjack/deck_fifo/queue[39:0]}
-#add wave -hex sim:/tb_blackjack/deck_fifo/card
-#add wave sim:/tb_blackjack/deck_fifo/request
+add wave -group "queue" -label "queue(1)" sim:/tb_blackjack/gen_deck_fifo(1)/deck_fifo/queue
+add wave -group "queue" -label "queue(2)" sim:/tb_blackjack/gen_deck_fifo(2)/deck_fifo/queue
+add wave -group "queue" -label "queue(3)" sim:/tb_blackjack/gen_deck_fifo(3)/deck_fifo/queue
+add wave -group "queue" -label "queue(4)" sim:/tb_blackjack/gen_deck_fifo(4)/deck_fifo/queue
+add wave -group "queue" -label "queue(5)" sim:/tb_blackjack/gen_deck_fifo(5)/deck_fifo/queue
+add wave -group "queue" -label "queue(6)" sim:/tb_blackjack/gen_deck_fifo(6)/deck_fifo/queue
+add wave -group "queue" -label "queue(7)" sim:/tb_blackjack/gen_deck_fifo(7)/deck_fifo/queue
+add wave -group "queue" -label "queue(8)" sim:/tb_blackjack/gen_deck_fifo(8)/deck_fifo/queue
+add wave -group "card" -label "card(1)" sim:/tb_blackjack/gen_deck_fifo(1)/deck_fifo/card
+add wave -group "card" -label "card(2)" sim:/tb_blackjack/gen_deck_fifo(2)/deck_fifo/card
+add wave -group "card" -label "card(3)" sim:/tb_blackjack/gen_deck_fifo(3)/deck_fifo/card
+add wave -group "card" -label "card(4)" sim:/tb_blackjack/gen_deck_fifo(4)/deck_fifo/card
+add wave -group "card" -label "card(5)" sim:/tb_blackjack/gen_deck_fifo(5)/deck_fifo/card
+add wave -group "card" -label "card(6)" sim:/tb_blackjack/gen_deck_fifo(6)/deck_fifo/card
+add wave -group "card" -label "card(7)" sim:/tb_blackjack/gen_deck_fifo(7)/deck_fifo/card
+add wave -group "card" -label "card(8)" sim:/tb_blackjack/gen_deck_fifo(8)/deck_fifo/card
 
 ###Force waveform values
 ##Generate a clock signal of 100MHz (Period of 10ns)

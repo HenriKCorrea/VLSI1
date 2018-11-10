@@ -398,18 +398,13 @@ package body pkg_tb_blackjack is
 		constant actual_dealer_score	: in std_logic_vector(4 downto 0);
 		constant msg_prefix				: in string
 	) is
-		variable actual_player_score : std_logic_vector(4 downto 0) := (others => '0');
 		variable watchdog : natural range 0 to 10 := c_timeout_treshold;
 	begin
 		--Read actual player score
-		wait until clk = '0'; debug <= '0'; show <= '0'; wait until clk = '1';
-		actual_player_score := total;
+		debug <= '0'; show <= '0'; wait until clk = '1';
 	
 		--Wait until player score changes
-		while(actual_player_score = total and watchdog > 0) loop
-			--Validate if player output didn't changed
-			aux_validate_output(win, '0', lose, '0', tie, '0', total, actual_player_score, msg_prefix, "player");
-			
+		while(next_player_score /= total and watchdog > 0) loop			
 			--Decrement watchdog counter to avoid stay blocked in this loop
 			watchdog := watchdog - 1;			
 			
@@ -419,7 +414,7 @@ package body pkg_tb_blackjack is
 		
 		--Check if loop ended because of a new card or if occoured an timeout
 		if(watchdog = 0) then
-			report msg_prefix & "Timeout while waiting for player hit a new card" severity error;
+			report msg_prefix & "Timeout while waiting for player hit the next card. Expected: " & integer'image(to_integer(unsigned(next_player_score))) & " Got: " & integer'image(to_integer(unsigned(total))) severity error;
 		else
 			--Validate if player score changed to the expected value
 			aux_validate_output(win, '0', lose, '0', tie, '0', total, next_player_score, msg_prefix, "player");
@@ -442,18 +437,13 @@ package body pkg_tb_blackjack is
 		constant actual_player_score	: in std_logic_vector(4 downto 0);
 		constant msg_prefix				: in string
 	) is
-		variable actual_dealer_score : std_logic_vector(4 downto 0) := (others => '0');
 		variable watchdog : natural range 0 to 10 := c_timeout_treshold;
 	begin
 		--Read actual dealer score
-		wait until clk = '0'; debug <= '1'; show <= '1'; wait until clk = '1';
-		actual_dealer_score := total;
+		debug <= '1'; show <= '1'; wait until clk = '1';
 	
 		--Wait until player score changes
-		while(actual_dealer_score = total and watchdog > 0) loop
-			--Validate if dealer output didn't changed
-			aux_validate_output(win, '0', lose, '0', tie, '0', total, actual_dealer_score, msg_prefix, "dealer");
-			
+		while(next_dealer_score /= total and watchdog > 0) loop
 			--Decrement watchdog counter to avoid stay blocked in this loop
 			watchdog := watchdog - 1;					
 			
@@ -463,7 +453,7 @@ package body pkg_tb_blackjack is
 		
 		--Check if loop ended because of a new card or if occoured an timeout
 		if(watchdog = 0) then
-			report msg_prefix & "Timeout while waiting for dealer hit a new card" severity error;
+			report msg_prefix & "Timeout while waiting for dealer hit the next card. Expected: " & integer'image(to_integer(unsigned(next_dealer_score))) & " Got: " & integer'image(to_integer(unsigned(total))) severity error;
 		else		
 			--Validate if dealer score changed to the expected value
 			aux_validate_output(win, '0', lose, '0', tie, '0', total, next_dealer_score, msg_prefix, "dealer");
@@ -489,32 +479,23 @@ package body pkg_tb_blackjack is
 		constant actual_player_score	: in std_logic_vector(4 downto 0);
 		constant msg_prefix				: in string
 	) is
-		variable actual_dealer_score : std_logic_vector(4 downto 0) := (others => '0');
 		variable watchdog : natural range 0 to 10 := c_timeout_treshold;
 	begin
 		--Read actual dealer score
-		wait until clk = '0'; debug <= '1'; show <= '1'; wait until clk = '1';
-		actual_dealer_score := total;
+		debug <= '1'; show <= '1'; wait until clk = '1';
 	
 		--Wait until player score changes
-		while(actual_dealer_score = total and watchdog > 0) loop
-			--Validate if dealer output didn't changed
-			aux_validate_output(win, '0', lose, '0', tie, '0', total, actual_dealer_score, msg_prefix, "dealer");
-			
-			--Validate if player score didn't changed
-			wait until clk = '0'; debug <= '0'; show <= '0'; wait until clk = '1';
-			assert (total = actual_player_score) report msg_prefix & "Invalid player score. Expected: " & integer'image(to_integer(unsigned(actual_player_score))) & " Got: " & integer'image(to_integer(unsigned(total))) severity error;
-			
-			--Check if dealer score changed
-			wait until clk = '0'; debug <= '1'; show <= '1'; wait until clk = '1';
-			
+		while(next_dealer_score /= total and watchdog > 0) loop						
 			--Decrement watchdog counter to avoid stay blocked in this loop
 			watchdog := watchdog - 1;			
+			
+			--Check if dealer score changed
+			wait until clk = '0';  wait until clk = '1';			
 		end loop;
 		
 		--Check if loop ended because of a new card or if occoured an timeout
 		if(watchdog = 0) then
-			report msg_prefix & "Timeout while waiting for dealer hit a new card" severity error;
+			report msg_prefix & "Timeout while waiting for dealer hit the next card. Expected: " & integer'image(to_integer(unsigned(next_dealer_score))) & " Got: " & integer'image(to_integer(unsigned(total))) severity error;
 		else		
 			--Validate if dealer final score changed to the expected value
 			aux_validate_output(win, expected_win, lose, expected_lose, tie, expected_tie, total, next_dealer_score, msg_prefix, "dealer");
@@ -540,32 +521,23 @@ package body pkg_tb_blackjack is
 		constant actual_dealer_score	: in std_logic_vector(4 downto 0);
 		constant msg_prefix				: in string
 	) is
-		variable actual_player_score : std_logic_vector(4 downto 0) := (others => '0');
 		variable watchdog : natural range 0 to 10 := c_timeout_treshold;
 	begin
 		--Read actual player score
-		wait until clk = '0'; debug <= '0'; show <= '0'; wait until clk = '1';
-		actual_player_score := total;
+		debug <= '0'; show <= '0'; wait until clk = '1';
 	
 		--Wait until dealer score changes
-		while(actual_player_score = total and watchdog > 0) loop
-			--Validate if player output didn't changed
-			aux_validate_output(win, '0', lose, '0', tie, '0', total, actual_player_score, msg_prefix, "player");
-			
-			--Validate if dealer score didn't changed
-			wait until clk = '0'; debug <= '1'; show <= '1'; wait until clk = '1';
-			assert (total = actual_dealer_score) report msg_prefix & "Invalid dealer score. Expected: " & integer'image(to_integer(unsigned(actual_dealer_score))) & " Got: " & integer'image(to_integer(unsigned(total))) severity error;
-			
-			--Check if player score changed
-			wait until clk = '0'; debug <= '0'; show <= '0'; wait until clk = '1';
-			
+		while(next_player_score /= total and watchdog > 0) loop
 			--Decrement watchdog counter to avoid stay blocked in this loop
 			watchdog := watchdog - 1;			
+			
+			--Check if player score changed
+			wait until clk = '0'; wait until clk = '1';			
 		end loop;
 		
 		--Check if loop ended because of a new card or if occoured an timeout
 		if(watchdog = 0) then
-			report msg_prefix & "Timeout while waiting for player hit a new card" severity error;
+			report msg_prefix & "Timeout while waiting for player hit the next card. Expected: " & integer'image(to_integer(unsigned(next_player_score))) & " Got: " & integer'image(to_integer(unsigned(total))) severity error;
 		else		
 			--Validate if dealer final score changed to the expected value
 			aux_validate_output(win, expected_win, lose, expected_lose, tie, expected_tie, total, next_player_score, msg_prefix, "player");
