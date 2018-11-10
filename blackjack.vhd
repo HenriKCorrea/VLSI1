@@ -1,5 +1,3 @@
--- Blackjack by Guilherme Rossato and Marcos Sokolowski
-
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.all;
@@ -95,12 +93,11 @@ begin
 
 				s_user_win when (USER_HAS_PRESSED_STAY = '1' and machine_card > 21) else
 				s_user_win when (USER_HAS_PRESSED_STAY = '1' and machine_card >= GIVE_UP_VALUE and USER_HAS_BETTER_CARDS = '1') else
-				s_draw when (USER_HAS_PRESSED_STAY = '1' and machine_card >= GIVE_UP_VALUE and USER_HAS_BETTER_CARDS = '0' and machine_card = user_card) else
+				s_draw when (USER_HAS_PRESSED_STAY = '1' and machine_card >= GIVE_UP_VALUE and machine_card = user_card) else
 				s_machine_win when (USER_HAS_PRESSED_STAY = '1' and machine_card >= GIVE_UP_VALUE and USER_HAS_BETTER_CARDS = '0') else
 				s_request_card_machine when (USER_HAS_PRESSED_STAY = '1' and IS_CARD_VALID = '0') else
 				s_giving_card_machine when (USER_HAS_PRESSED_STAY = '1' and IS_CARD_VALID = '1' and not (machine_card >= GIVE_UP_VALUE)) else
 
-				s_draw when (USER_HAS_PRESSED_STAY = '1' and machine_card = user_card) else
 				s_user_win when (USER_HAS_PRESSED_STAY = '1' and user_card > machine_card) else
 
 				s_waiting_user_input;

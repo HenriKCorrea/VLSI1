@@ -1,5 +1,3 @@
--- Card Controller by Guilherme Rossato and Marcos Sokolowski
-
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
@@ -46,9 +44,9 @@ begin
 		8  when CARD = CARD_8 else
 		9  when CARD = CARD_9 else
 		10 when CARD = CARD_10 else
-		11 when CARD = CARD_11 else
-		12 when CARD = CARD_12 else
-		13 when CARD = CARD_13 else
+		10 when CARD = CARD_11 else
+		10 when CARD = CARD_12 else
+		10 when CARD = CARD_13 else
 		0;
 
 	handle_additions : process(RESET, ADD)
