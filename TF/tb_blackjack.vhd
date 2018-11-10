@@ -36,6 +36,13 @@ architecture arch_tb_blackjack of tb_blackjack is
 	--Auxiliary signals
 	signal s_finishTest: std_logic := '0';			--Flag to indicate if test finish
 	signal s_currentTest: t_testset := STARTING;	--Auxiliary state to show current test when debugging waveform in ModelSim
+
+	signal s_test_number : natural range 0 to 8 := 1;
+
+	type t_card_mux is array (0 to 8) of std_logic_vector(3 downto 0);
+	signal s_card_mux : t_card_mux;
+	type t_request_mux is array (0 to 8) of std_logic;
+	signal s_request_mux : t_request_mux;
 	
 	--signals used to map  (CUV)
 	signal s_clk 		: std_logic := '0'; 
@@ -50,27 +57,6 @@ architecture arch_tb_blackjack of tb_blackjack is
 	signal s_lose		: std_logic := '0'; 
 	signal s_tie		: std_logic := '0'; 
 	signal s_total		: std_logic_vector(4 downto 0) := (others => '0');
-	
-	signal s_request_deck_fifo		: std_logic := '0';
-	signal s_request_testbench		: std_logic := '0';
-
-	-----------------------------------------
-	--Aux: prepare for next test by discarding the current card from the last test
-	-----------------------------------------  
-	procedure aux_prepare_next_step
-	(
-		signal clk 			: in std_logic; 
-		signal request		: out std_logic;
-		signal currentTest	: out t_testset
-	) is
-	begin
-		currentTest <= PREPARING_NEXT_TEST; 
-		
-		wait until clk = '0'; 
-		request <= '1'; 
-		wait until clk = '1'; wait until clk = '0'; 
-		request <= '0';
-	end aux_prepare_next_step;			
 
 begin
 
@@ -83,31 +69,31 @@ begin
 	begin
 		s_currentTest <= TEST_1_PLAYER_WIN;
 		test_1_success_win(s_clk, s_rst, s_stay, s_hit, s_debug, s_show, s_card, s_request, s_win, s_lose, s_tie, s_total);
-		aux_prepare_next_step(s_clk, s_request_testbench, s_currentTest);
+		s_test_number <= s_test_number + 1;
 		
 		s_currentTest <= TEST_2_PLAYER_LOSE;
 		test_2_player_lose(s_clk, s_rst, s_stay, s_hit, s_debug, s_show, s_card, s_request, s_win, s_lose, s_tie, s_total);
-		aux_prepare_next_step(s_clk, s_request_testbench, s_currentTest);
+		s_test_number <= s_test_number + 1;
 		
 		s_currentTest <= TEST_3_TIE;
 		test_3_tie(s_clk, s_rst, s_stay, s_hit, s_debug, s_show, s_card, s_request, s_win, s_lose, s_tie, s_total);
-		aux_prepare_next_step(s_clk, s_request_testbench, s_currentTest);
+		s_test_number <= s_test_number + 1;
 		
 		s_currentTest <= TEST_4_ACE_ONLY;
 		test_4_ace_only(s_clk, s_rst, s_stay, s_hit, s_debug, s_show, s_card, s_request, s_win, s_lose, s_tie, s_total);
-		aux_prepare_next_step(s_clk, s_request_testbench, s_currentTest);
+		s_test_number <= s_test_number + 1;
 		
 		s_currentTest <= TEST_5_PLAYER_PASSING_21;
 		test_5_player_passing_21(s_clk, s_rst, s_stay, s_hit, s_debug, s_show, s_card, s_request, s_win, s_lose, s_tie, s_total);
-		aux_prepare_next_step(s_clk, s_request_testbench, s_currentTest);
+		s_test_number <= s_test_number + 1;
 		
 		s_currentTest <= TEST_6_DEALER_PASSING_21;
 		test_6_dealer_passing_21(s_clk, s_rst, s_stay, s_hit, s_debug, s_show, s_card, s_request, s_win, s_lose, s_tie, s_total);
-		aux_prepare_next_step(s_clk, s_request_testbench, s_currentTest);
+		s_test_number <= s_test_number + 1;
 
 		s_currentTest <= TEST_7_DECODE_ALL_CARDS;
 		test_7_decode_all_cards(s_clk, s_rst, s_stay, s_hit, s_debug, s_show, s_card, s_request, s_win, s_lose, s_tie, s_total);
-		aux_prepare_next_step(s_clk, s_request_testbench, s_currentTest);
+		s_test_number <= s_test_number + 1;
 		
 		s_currentTest <= TEST_8_HIT_STAY;
 		test_8_hit_stay_press_test(s_clk, s_rst, s_stay, s_hit, s_debug, s_show, s_card, s_request, s_win, s_lose, s_tie, s_total);
@@ -117,16 +103,21 @@ begin
 	end process test;
 	
 	--Instantiate external card deck memory (FIFO)
-	deck_fifo: entity work.card_deck_memory
-	port map
-	(
-		request => s_request_deck_fifo,
-		card => s_card
-	);
+	gen_deck_fifo: for i in 0 to 8 generate
+		deck_fifo: entity work.card_deck_memory
+		generic map
+		(
+			TEST_NUMBER => i
+		)
+		port map
+		(
+			request => s_request_mux(i),
+			card => s_card_mux(i)
+		);	
+	end generate gen_deck_fifo;
 
 	--Instantiate CUV
 	cuv: entity work.blackjack
-	generic map (CLK_EDGE => CLK_EDGE)
 	port map
 	(
 		clk 	=> s_clk, 		
@@ -143,8 +134,7 @@ begin
 		total	=> s_total			
 	);
 
-	--Mux that allows the testbench take control of request signal when there's no test running
-	s_request_deck_fifo <= 	s_request when s_currentTest /= PREPARING_NEXT_TEST  else
-							s_request_testbench;
+	s_card <= s_card_mux(s_test_number);
+	s_request_mux(s_test_number) <= s_request;
 
 end arch_tb_blackjack;

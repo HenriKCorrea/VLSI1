@@ -19,7 +19,7 @@ package pkg_tb_blackjack is
 	type t_score_array is array (natural range <>) of std_logic_vector(4 downto 0);
 	
 	--Aux constant to limit the max allowed time to stay in a loop
-	constant c_timeout_treshold : natural := 5;
+	constant c_timeout_treshold : natural := 10;
 	
 	-----------------------------------------
 	--Aux: helper function to convert unsigned score values to std_logic_vector
@@ -410,15 +410,11 @@ package body pkg_tb_blackjack is
 			--Validate if player output didn't changed
 			aux_validate_output(win, '0', lose, '0', tie, '0', total, actual_player_score, msg_prefix, "player");
 			
-			--Validate if dealer output didn't changed
-			wait until clk = '0'; debug <= '1'; show <= '1'; wait until clk = '1';		
-			aux_validate_output(win, '0', lose, '0', tie, '0', total, actual_dealer_score, msg_prefix, "dealer");
+			--Decrement watchdog counter to avoid stay blocked in this loop
+			watchdog := watchdog - 1;			
 			
 			--Check if player score changed
-			wait until clk = '0'; debug <= '0'; show <= '0'; wait until clk = '1';
-			
-			--Decrement watchdog counter to avoid stay blocked in this loop
-			watchdog := watchdog - 1;
+			wait until clk = '0'; wait until clk = '1';
 		end loop;
 		
 		--Check if loop ended because of a new card or if occoured an timeout
@@ -458,15 +454,11 @@ package body pkg_tb_blackjack is
 			--Validate if dealer output didn't changed
 			aux_validate_output(win, '0', lose, '0', tie, '0', total, actual_dealer_score, msg_prefix, "dealer");
 			
-			--Validate if player output didn't changed
-			wait until clk = '0'; debug <= '0'; show <= '0'; wait until clk = '1';		
-			aux_validate_output(win, '0', lose, '0', tie, '0', total, actual_player_score, msg_prefix, "player");
+			--Decrement watchdog counter to avoid stay blocked in this loop
+			watchdog := watchdog - 1;					
 			
 			--Check if dealer score changed
-			wait until clk = '0'; debug <= '1'; show <= '1'; wait until clk = '1';
-			
-			--Decrement watchdog counter to avoid stay blocked in this loop
-			watchdog := watchdog - 1;			
+			wait until clk = '0'; wait until clk = '1';	
 		end loop;
 		
 		--Check if loop ended because of a new card or if occoured an timeout

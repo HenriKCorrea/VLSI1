@@ -59,9 +59,9 @@ add wave -group "Dealer Deck" sim:/tb_blackjack/cuv/dealer_deck/state
 add wave -group "Dealer Deck" sim:/tb_blackjack/cuv/dealer_deck/next_state
 
 add wave -divider "Deck FIFO"
-add wave -hex {sim:/tb_blackjack/deck_fifo/queue[39:0]}
-add wave -hex sim:/tb_blackjack/deck_fifo/card
-add wave sim:/tb_blackjack/deck_fifo/request
+#add wave -hex {sim:/tb_blackjack/deck_fifo/queue[39:0]}
+#add wave -hex sim:/tb_blackjack/deck_fifo/card
+#add wave sim:/tb_blackjack/deck_fifo/request
 
 ###Force waveform values
 ##Generate a clock signal of 100MHz (Period of 10ns)
