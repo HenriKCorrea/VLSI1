@@ -3,9 +3,6 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.all;
 
 entity blackjack is
-   generic (
-		GIVE_UP_VALUE : integer range 0 to 21 := 17
-	);
 	port (
 		CLK     : in  STD_LOGIC;
 		RESET   : in  STD_LOGIC;
@@ -22,109 +19,127 @@ entity blackjack is
 	);
 end blackjack;
 
-architecture blackjack_behavioral of blackjack is
-	signal user_card : integer range 0 to 63;
-	signal machine_card : integer range 0 to 63;
-	signal add_to_user : std_logic;
-	signal add_to_machine : std_logic;
+architecture blackjack_behavior of blackjack is
+	signal player_card, player_card_latched : integer range 0 to 63;
+	signal dealer_card, dealer_card_latched : integer range 0 to 63;
+	signal add_to_player : std_logic;
+	signal add_to_dealer : std_logic;
 
 	type type_state is (
 		s_reset,
 		s_stabilize,
 
-		s_request_first_card_user,
-		s_giving_first_card_user,
-		s_request_first_card_machine,
-		s_giving_first_card_machine,
-		s_request_card_user,
-		s_giving_card_user,
-		s_request_card_machine,
-		s_giving_card_machine,
-		s_waiting_user_input,
+		s_check_player_0,
+		s_give_player_0,
+		s_check_dealer_0,
+		s_give_dealer_0,
+		s_check_player_1,
+		s_give_player_1,
+		s_check_dealer_1,
+		s_give_dealer_1,
 
-		s_user_win,
-		s_draw,
-		s_machine_win
+		s_wait,
+
+		s_check_player_2,
+		s_give_player_2,
+		s_check_dealer_2,
+		s_give_dealer_2,
+
+		s_comp,
+
+		s_win,
+		s_tie,
+		s_lose
 	);
 	signal CurrS, NextS : type_state;
 
 	signal POSITIVE_REQUEST : std_logic;
 
-	signal IS_GAME_OVER_STATE, IS_USER_REQUEST_STATE, IS_MACHINE_REQUEST_STATE : std_logic;
+	signal IS_GAME_OVER_STATE : std_logic;
 
 	signal IS_CARD_VALID : std_logic;
-	
-	signal USER_HAS_PRESSED_STAY, USER_HAS_BETTER_CARDS : std_logic;
+
+	signal IS_DEALER_REQUEST_STATE, IS_PLAYER_REQUEST_STATE : std_logic;
+	signal IS_DEALER_GIVING_STATE, IS_PLAYER_GIVING_STATE : std_logic;
+	signal IS_NEXT_CHECK : std_logic;
 begin
-	WIN  <= '1' when (CurrS = s_user_win) else '0';
-	TIE  <= '1' when (CurrS = s_draw) else '0';
-	LOSE <= '1' when (CurrS = s_machine_win) else '0';
+	WIN  <= '1' when (CurrS = s_win) else '0';
+	TIE  <= '1' when (CurrS = s_tie) else '0';
+	LOSE <= '1' when (CurrS = s_lose) else '0';
 
-	IS_GAME_OVER_STATE <= '1' when (CurrS = s_user_win or CurrS = s_draw or CurrS = s_machine_win) else '0';
+	IS_GAME_OVER_STATE <= '1' when (CurrS = s_win or CurrS = s_tie or CurrS = s_lose) else '0';
 
-	TOTAL <= std_logic_vector(to_unsigned(machine_card, TOTAL'length)) when ((DEBUG = '1' or IS_GAME_OVER_STATE = '1') and SHOW = '1') else
-				std_logic_vector(to_unsigned(user_card, TOTAL'length));
+	TOTAL <= std_logic_vector(to_unsigned(dealer_card, TOTAL'length)) when ((DEBUG = '1' or IS_GAME_OVER_STATE = '1') and SHOW = '1') else
+			std_logic_vector(to_unsigned(player_card_latched, TOTAL'length));
 
 	IS_CARD_VALID <=  '0' when (CARD = "0000" or CARD = "1110" or CARD = "1111") else '1';
 
-	USER_HAS_BETTER_CARDS <= '1' when (user_card > machine_card) else '0';
+	NextS <=	s_stabilize when (CurrS = s_reset and RESET = '0') else
 
-	-- Normal startup cycle
-	NextS <=	s_user_win when (CurrS = s_user_win) else
-				s_draw when (CurrS = s_draw) else
-				s_machine_win when (CurrS = s_machine_win) else
-				s_stabilize when (CurrS = s_reset) else
-				s_request_first_card_user when (CurrS = s_stabilize and IS_CARD_VALID = '0') else
-				s_request_first_card_user when (CurrS = s_request_first_card_user and IS_CARD_VALID = '0') else
-				s_giving_first_card_user when ((CurrS = s_stabilize or CurrS = s_request_first_card_user) and IS_CARD_VALID = '1') else
+				s_check_player_0 when (CurrS = s_stabilize) else
+				s_check_player_0 when (CurrS = s_check_player_0 and IS_CARD_VALID = '0') else
+				s_give_player_0 when (CurrS = s_check_player_0 and IS_CARD_VALID = '1') else
+				s_check_dealer_0 when (CurrS = s_give_player_0) else
+				s_check_dealer_0 when (CurrS = s_check_dealer_0 and IS_CARD_VALID = '0') else
+				s_give_dealer_0 when (CurrS = s_check_dealer_0 and IS_CARD_VALID = '1') else
 
-				s_request_first_card_machine when (CurrS = s_giving_first_card_user) else
-				s_request_first_card_machine when (CurrS = s_request_first_card_machine and IS_CARD_VALID = '0') else
-				s_giving_first_card_machine when (CurrS = s_request_first_card_machine and IS_CARD_VALID = '1') else
+				s_check_player_1 when (CurrS = s_give_dealer_0) else
+				s_check_player_1 when (CurrS = s_check_player_1 and IS_CARD_VALID = '0') else
+				s_give_player_1 when (CurrS = s_check_player_1 and IS_CARD_VALID = '1') else
+				s_check_dealer_1 when (CurrS = s_give_player_1) else
+				s_check_dealer_1 when (CurrS = s_check_dealer_1 and IS_CARD_VALID = '0') else
+				s_give_dealer_1 when (CurrS = s_check_dealer_1 and IS_CARD_VALID = '1') else
 
-				s_request_card_user when (CurrS = s_giving_first_card_machine) else
-				s_request_card_user when (CurrS = s_request_card_user and IS_CARD_VALID = '0') else
-				s_giving_card_user when (CurrS = s_request_card_user and IS_CARD_VALID = '1') else
+				s_wait when (CurrS = s_give_dealer_1) else
+				s_wait when (CurrS = s_wait and HIT='0' and STAY='0') else
+				s_wait when (CurrS = s_wait and HIT='1' and STAY='1') else
 
-				s_request_card_machine when (CurrS = s_giving_card_user) else
-				s_request_card_machine when (CurrS = s_request_card_machine and IS_CARD_VALID = '0') else
-				s_giving_card_machine when (CurrS = s_request_card_machine and IS_CARD_VALID = '1' and not (machine_card >= GIVE_UP_VALUE)) else
-				s_request_card_machine when (USER_HAS_PRESSED_STAY = '1' and not (machine_card >= GIVE_UP_VALUE)) else
+				s_check_player_2 when (CurrS = s_wait and HIT = '1') else
+				s_check_player_2 when (CurrS = s_check_player_2 and IS_CARD_VALID = '0') else
+				s_give_player_2 when (CurrS = s_check_player_2 and IS_CARD_VALID = '1') else
+				s_lose when (CurrS = s_give_player_2 and player_card >= 22) else
+				s_wait when (CurrS = s_give_player_2 and player_card < 22) else
 
-				s_user_win when (USER_HAS_PRESSED_STAY = '1' and machine_card > 21) else
-				s_user_win when (USER_HAS_PRESSED_STAY = '1' and machine_card >= GIVE_UP_VALUE and USER_HAS_BETTER_CARDS = '1') else
-				s_draw when (USER_HAS_PRESSED_STAY = '1' and machine_card >= GIVE_UP_VALUE and machine_card = user_card) else
-				s_machine_win when (USER_HAS_PRESSED_STAY = '1' and machine_card >= GIVE_UP_VALUE and USER_HAS_BETTER_CARDS = '0') else
-				s_request_card_machine when (USER_HAS_PRESSED_STAY = '1' and IS_CARD_VALID = '0') else
-				s_giving_card_machine when (USER_HAS_PRESSED_STAY = '1' and IS_CARD_VALID = '1' and not (machine_card >= GIVE_UP_VALUE)) else
+				s_check_dealer_2 when (CurrS = s_wait and STAY='1') else
+				s_check_dealer_2 when (CurrS = s_check_dealer_2 and IS_CARD_VALID = '0') else
+				s_give_dealer_2 when (CurrS = s_check_dealer_2 and IS_CARD_VALID = '1') else
+				s_check_dealer_2 when (CurrS = s_give_dealer_2 and dealer_card <= 16) else
+				s_win when (CurrS = s_give_dealer_2 and dealer_card >= 22) else
+				s_comp when (CurrS = s_give_dealer_2 and dealer_card > 16) else
+				s_win when (CurrS = s_comp and player_card > dealer_card) else
+				s_lose when (CurrS = s_comp and player_card < dealer_card) else
+				s_tie when (CurrS = s_comp and player_card = dealer_card) else
+				s_tie when (CurrS = s_tie) else
+				s_win when (CurrS = s_win) else
+				s_lose;
 
-				s_user_win when (USER_HAS_PRESSED_STAY = '1' and user_card > machine_card) else
+	IS_PLAYER_REQUEST_STATE <= '1' when (CurrS = s_check_player_0 or CurrS = s_check_player_1 or CurrS = s_check_player_2) else '0';
+	IS_DEALER_REQUEST_STATE <= '1' when (CurrS = s_check_dealer_0 or CurrS = s_check_dealer_1 or CurrS = s_check_dealer_2) else '0';
 
-				s_waiting_user_input;
+	IS_PLAYER_GIVING_STATE <= '1' when (CurrS = s_give_player_0 or CurrS = s_give_player_1 or CurrS = s_give_player_2) else '0';
+	IS_DEALER_GIVING_STATE <= '1' when (CurrS = s_give_dealer_0 or CurrS = s_give_dealer_1 or CurrS = s_give_dealer_2) else '0';
 
-	IS_USER_REQUEST_STATE <= '1' when (CurrS = s_request_first_card_user or CurrS = s_request_card_user) else '0';
-	IS_MACHINE_REQUEST_STATE <= '1' when (CurrS = s_request_first_card_machine or CurrS = s_request_card_machine) else '0';
+	IS_NEXT_CHECK <= '1' when (NextS = s_check_player_0 or NextS = s_check_player_1 or NextS = s_check_player_2 or NextS = s_check_dealer_0 or NextS = s_check_dealer_1 or NextS = s_check_dealer_2) else '0';
 
-	add_to_user <= '1' when ((CurrS = s_giving_first_card_user or CurrS = s_giving_card_user) and IS_CARD_VALID = '1') else '0';			
-	add_to_machine <= '1' when ((CurrS = s_giving_first_card_machine or CurrS = s_giving_card_machine) and IS_CARD_VALID = '1') else '0';
+	add_to_player <= '1' when (IS_PLAYER_GIVING_STATE = '1') else '0';
+	add_to_dealer <= '1' when (IS_DEALER_GIVING_STATE = '1') else '0';
 
 	REQUEST <= '0' when (RESET = '1') else
-				  POSITIVE_REQUEST when (IS_USER_REQUEST_STATE = '1' or IS_MACHINE_REQUEST_STATE = '1') else
-				  '1' when (CurrS = s_waiting_user_input) else
-				  '0';
+		POSITIVE_REQUEST when (IS_PLAYER_REQUEST_STATE = '1' or IS_DEALER_REQUEST_STATE = '1') else
+		'0';
 
 	user_controller: entity work.card_controller port map(
 		RESET => RESET,
 		CARD =>  CARD,
-		TOTAL => user_card,
-		ADD =>   add_to_user
+		TOTAL => player_card,
+		ADD =>   add_to_player
 	);
 
 	machine_controller: entity work.card_controller port map(
 		RESET => RESET,
 		CARD =>  CARD,
-		TOTAL => machine_card,
-		ADD =>   add_to_machine
+		TOTAL => dealer_card,
+		ADD =>   add_to_dealer
 	);
 
 	state_machine_transition : process(CLK)
@@ -132,50 +147,41 @@ begin
 		if (rising_edge(CLK)) then
 			if (RESET = '1') then
 				CurrS <= s_reset;
+				-- Reset request card logic
 				POSITIVE_REQUEST <= '0';
-				USER_HAS_PRESSED_STAY <= '0';
-			elsif (NextS = s_waiting_user_input and STAY = '1' and HIT = '0') then
-				USER_HAS_PRESSED_STAY <= '1';
-				if (user_card = 21 and machine_card = 21) then
-					-- Draw when the user stays and won
-					CurrS <= s_draw;
-				else
-					if (IS_CARD_VALID = '0') then
-						CurrS <= s_request_card_machine;
-					else
-						CurrS <= s_giving_card_machine;
-					end if;
-				end if;
-			elsif (NextS = s_waiting_user_input and user_card > 21) then
-				-- user cards > 21 = machine win
-				CurrS <= s_machine_win;
-			elsif (NextS = s_waiting_user_input and machine_card > 21) then
-				-- machine cards > 21 = user win
-				CurrS <= s_user_win;
-			elsif (NextS = s_waiting_user_input and STAY = '0' and HIT = '1') then
-				-- HIT normal press
-				if (IS_CARD_VALID = '0') then
-					CurrS <= s_request_card_user;
-				else
-					CurrS <= s_giving_card_user;
-				end if;
-			elsif (NextS = s_waiting_user_input and STAY = '1' and HIT = '1') then
-				-- Does not exit the waiting state when both STAY and HIT are on
-				CurrS <= s_waiting_user_input;
-			elsif (NextS = s_request_first_card_user or NextS = s_request_card_user or NextS = s_request_first_card_machine or NextS = s_request_card_machine) then
-				if (CurrS /= NextS) then
-					-- We exited the state and the card was accepted
+				-- Card Latch Logic
+				player_card_latched <= player_card;
+				dealer_card_latched <= dealer_card;
+			elsif (CurrS = NextS and IS_NEXT_CHECK='1') then
+				-- Request card logic
+				POSITIVE_REQUEST <= not POSITIVE_REQUEST;
+				-- Card Latch Logic
+				player_card_latched <= player_card_latched;
+				dealer_card_latched <= dealer_card_latched;
+			else
+				if (NextS /= s_check_player_0 and IS_NEXT_CHECK='1') then
 					POSITIVE_REQUEST <= '1';
 				else
-					-- We did not exit the state, so the card is unnaceptable, let's wait for 1 cycle:
-					POSITIVE_REQUEST <= not POSITIVE_REQUEST;
+					POSITIVE_REQUEST <= '0';
 				end if;
-				CurrS <= NextS;
-			else
+				-- Reset request card logic
+				-- Card Latch Logic for player
+				if (IS_PLAYER_GIVING_STATE = '1' and CurrS /= NextS) then
+					player_card_latched <= player_card;
+				else
+					player_card_latched <= player_card_latched;
+				end if;
+				-- Card Latch Logic for dealer
+				if (IS_DEALER_GIVING_STATE = '1' and CurrS /= NextS) then
+					dealer_card_latched <= dealer_card;
+				else
+					dealer_card_latched <= dealer_card_latched;
+				end if;
+				-- Actual Transition
 				CurrS <= NextS;
 			end if;
 		end if;
 	end process;
 
-end blackjack_behavioral;
+end blackjack_behavior;
 
